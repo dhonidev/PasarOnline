@@ -24,6 +24,14 @@ penyesalan
 10. tidak sempat belajar ujian bumn
 11. personal branding
 12. E
+13. belum rutin ngaji
+14. belum rutin ke masjid
+15. belum hapal banyak surah
+16. bangun mulai molor2
 
 hal-hal lain
 1. ttd online
+
+Personal access tokens (classic)
+dhoni dev
+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

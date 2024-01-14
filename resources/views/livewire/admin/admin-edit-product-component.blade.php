@@ -44,8 +44,8 @@
                             </div>
                             <div class="form-group">
                                 <div class="col-md-4 control-label">Short Description</div>
-                                <div class="col-md-4">
-                                    <textarea name="short_description" id="" cols="49" rows="3" placeholder="Short Description" wire:model="short_description"></textarea>
+                                <div class="col-md-4" wire:ignore>
+                                    <textarea name="short_description" id="short_description" cols="49" rows="3" placeholder="Short Description" wire:model="short_description"></textarea>
                                 </div>
                                 @error('short_description')
                                     <p class="text-danger">{{$message}}</p>
@@ -53,8 +53,8 @@
                             </div>
                             <div class="form-group">
                                 <div class="col-md-4 control-label">Description</div>
-                                <div class="col-md-4">
-                                    <textarea name="description" id="" cols="49" rows="6" placeholder="Description" wire:model="description"></textarea>
+                                <div class="col-md-4" wire:ignore>
+                                    <textarea name="description" id="description" cols="49" rows="6" placeholder="Description" wire:model="description"></textarea>
                                 </div>
                                 @error('description')
                                     <p class="text-danger">{{$message}}</p>
@@ -161,3 +161,30 @@
         </div>
     </div>
 </div>
+
+@push('js')
+<script>
+    $(function(){
+        tinymce.init({
+              selector: '#short_description',
+              setup:function(editor){
+                  editor.on('Change',function(e){
+                      tinyMCE.triggerSave();
+                      var sd_data = $('#short_description').val();
+                      @this.set('short_description', sd_data);
+                  })
+              }
+          });
+        tinymce.init({
+              selector: '#description',
+              setup:function(editor){
+                  editor.on('Change',function(e){
+                      tinyMCE.triggerSave();
+                      var sd_data = $('#description').val();
+                      @this.set('description', sd_data);
+                  })
+              }
+          });
+    })
+</script>
+@endpush

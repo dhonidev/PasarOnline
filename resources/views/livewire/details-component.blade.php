@@ -1,4 +1,4 @@
-
+<div>
 	<!--main area-->
 	<main id="main" class="main-site"> && $sale->sts == 1 && $sale->sale_date > Carbon\Carbon::now()
 		<div class="container">
@@ -40,7 +40,7 @@
                                     <li>Dual-core A7 with quad-core graphics</li>
                                     <li>FaceTime HD Camera 7.0 MP Photos</li>
                                 </ul> --}}
-								{{$product->short_description}}
+								{!!$product->short_description!!}
                             </div>
                             <div class="wrap-social">
                             	<a class="link-socail" href="#"><img src="{{asset('assets/images/social-list.png')}}" alt=""></a>
@@ -59,10 +59,10 @@
                             <div class="quantity">
                             	<span>Quantity:</span>
 								<div class="quantity-input">
-									<input type="text" name="product-quatity" value="1" data-max="120" pattern="[0-9]*" >
+									<input type="text" name="product-quatity" value="1" data-max="120" pattern="[0-9]*" wire:model="qty">
 									
-									<a class="btn btn-reduce" href="#"></a>
-									<a class="btn btn-increase" href="#"></a>
+									<a class="btn btn-reduce" href="#" wire:click.prevent="decreaseQty"></a>
+									<a class="btn btn-increase" href="#" wire:click.prevent="increaseQty"></a>
 								</div>
 							</div>
 							<div class="wrap-butons">
@@ -85,7 +85,7 @@
 							</div>
 							<div class="tab-contents">
 								<div class="tab-content-item active" id="description">
-									{{$product->description}}
+									{!!$product->description!!}
 								</div>
 								<div class="tab-content-item " id="add_infomation">
 									<table class="shop_attributes">
@@ -290,3 +290,4 @@
 
 	</main>
 	<!--main area-->
+</div>

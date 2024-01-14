@@ -7372,5 +7372,416 @@ $sale = Sale::find(1);
 
  onclick="confirm('Are you sure, You want to delete this category?') || event.stopImmediatePropagation()" 
 
+ on category and product
+
 ## Admin Using WYSIWYG HTML Editor on Product Page
 
+https://www.tiny.cloud/auth/login/?redirect_to=%2Fmy-account%2Fdomains%2F
+
+```php
+// base
+	<script src="https://cdn.tiny.cloud/1/blobq2ttxxfii0i4t1rxsrr4wt2jv6v1sy9h6rv9o35ynwja/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+// add and edit product
+wire:ignore
+id="short_description"
+
+wire:ignore
+id="description"
+
+@push('js')
+<script>
+    $(function(){
+        tinymce.init({
+              selector: '#short_description',
+              setup:function(editor){
+                  editor.on('Change',function(e){
+                      tinyMCE.triggerSave();
+                      var sd_data = $('#short_description').val();
+                      @this.set('short_description', sd_data);
+                  })
+              }
+          });
+        tinymce.init({
+              selector: '#description',
+              setup:function(editor){
+                  editor.on('Change',function(e){
+                      tinyMCE.triggerSave();
+                      var sd_data = $('#description').val();
+                      @this.set('description', sd_data);
+                  })
+              }
+          });
+    })
+</script>
+@endpush
+
+// detail-component
+{!!$product->short_description!!}
+{!!$product->description!!}
+```
+
+## Add Product To Wishlist
+
+```php
+// ShopComponent
+    public function store($prod_id, $prod_name, $prod_price){
+        Cart::instance('cart')->add($prod_id, $prod_name, 1, $prod_price)->associate('App\Models\Product');
+        session()->flash('message', 'Item added in Cart');
+        return redirect()->route('product.cart');
+    }
+
+    public function addToWishlist($product_id, $product_name, $product_price) {
+        Cart::instance('wishlist')->add($product_id, $product_name,1, $product_price)->associate('App\Models\Product');
+    }
+
+// shop-component
+	<style>
+		.product-wish{
+			position: absolute;
+			top: 10%;
+			left: 0;
+			z-index: 99;
+			right: 30px;
+			text-align: right;
+			padding-top: 0;
+		}
+		.product-wish .fa{
+			color: #cbcbcb;
+			font-size: 32px;
+		}
+		.product-wish .fa:hover{
+			color: #ff7007;
+		}
+		.product-wish .fill-heart{
+			color: #ff7007 !important;
+		}
+	</style>
+	// in top of loop
+	@php
+		$witems = Cart::instance('wishlist')->content()->pluck('id');
+	@endphp
+	// in loop prod
+	<div class="product-wish">
+		@if ($witems->contains($prod->id))
+			<a href=""><i class="fa fa-heart fill-heart"></i></a>
+		@else
+			<a href="#" wire:click.prevent="addToWishlist({{$prod->id}},'{{$prod->name}}','{{$prod->regular_price}}')"><i class="fa fa-heart"></i></a>
+		@endif
+	</div>
+
+// base
+	<div class="wrap-icon-section wishlist">
+		<a href="#" class="link-direction">
+			<i class="fa fa-heart" aria-hidden="true"></i>
+			<div class="left-info">
+				@if (Cart::instance('wishlist')->count() > 0)
+					<span class="index">{{Cart::instance('wishlist')->count()}} item</span>											
+				@endif
+				<span class="title">Wishlist</span>
+			</div>
+		</a>
+	</div>
+	<div class="wrap-icon-section minicart">
+		<a href="#" class="link-direction">
+			<i class="fa fa-shopping-basket" aria-hidden="true"></i>
+			<div class="left-info">
+				@if (Cart::instance('cart')->count() > 0)
+					<span class="index">{{Cart::instance('cart')->count()}} items</span>
+				@endif
+				<span class="title">CART</span>
+			</div>
+		</a>
+	</div>
+```
+
+Repaired
+
+```php
+// CartComponent
+    public function increaseQuantity($rowId){
+        $product = Cart::instance('cart')->get($rowId);
+        $qty = $product->qty + 1;
+        Cart::instance('cart')->update($rowId, $qty);
+    }
+    public function decreaseQuantity($rowId){
+        $product = Cart::instance('cart')->get($rowId);
+        $qty = $product->qty - 1;
+        Cart::instance('cart')->update($rowId, $qty);
+    }
+    public function destroy($rowId){
+        Cart::instance('cart')->remove($rowId);
+        session()->flash('message', 'Item has been removed');
+    }
+    public function destroyAll(){
+        Cart::instance('cart')->destroy();
+        session()->flash('message', 'All Items has been removed');
+    }
+
+// cart-comp
+	<div class="delete">
+		<a href="#" class="btn btn-delete" title="" wire:click.prevent="destroy('{{$cart->rowId}}')">
+			<span>Delete from your cart</span>
+			<i class="fa fa-times-circle" aria-hidden="true"></i>
+		</a>
+	</div>
+
+	// change all Cart
+	Cart::instance('cart')
+```
+
+## Auto Refresh Wishlist and Cart Count
+
+php artisan make:livewire WishlistCountComponent
+php artisan make:livewire CartCountComponent 
+
+```php
+// base
+	@livewire('wishlist-count-component')
+	@livewire('cart-count-component')
+
+// WishlistCountComponent
+    protected $listeners = ['refreshComponent'=>'$refresh'];
+    public function render()
+    {
+        return view('livewire.wishlist-count-component');
+    }
+
+// CartCountComponent
+    protected $listeners = ['refreshComponent'=>'$refresh'];
+    public function render()
+    {
+        return view('livewire.cart-count-component');
+    }
+
+// cart-count
+<div class="wrap-icon-section minicart">
+    <a href="#" class="link-direction">
+        <i class="fa fa-shopping-basket" aria-hidden="true"></i>
+        <div class="left-info">
+            @if (Cart::instance('cart')->count() > 0)
+                <span class="index">{{Cart::instance('cart')->count()}} items</span>
+            @endif
+            <span class="title">CART</span>
+        </div>
+    </a>
+</div>
+
+// wishlist-count
+<div class="wrap-icon-section wishlist">
+    <a href="#" class="link-direction">
+        <i class="fa fa-heart" aria-hidden="true"></i>
+        <div class="left-info">
+            @if (Cart::instance('wishlist')->count() > 0)
+                <span class="index">{{Cart::instance('wishlist')->count()}} item</span>											
+            @endif
+            <span class="title">Wishlist</span>
+        </div>
+    </a>
+</div>
+
+```
+
+```php
+// ShopComponent
+    public function addToWishlist($product_id, $product_name, $product_price) {
+        Cart::instance('wishlist')->add($product_id, $product_name,1, $product_price)->associate('App\Models\Product');
+        $this->emitTo('wishlist-count-component','refreshComponent');
+    }
+
+// CartComponent
+    public function increaseQuantity($rowId){
+        $product = Cart::instance('cart')->get($rowId);
+        $qty = $product->qty + 1;
+        Cart::instance('cart')->update($rowId, $qty);
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
+    public function decreaseQuantity($rowId){
+        $product = Cart::instance('cart')->get($rowId);
+        $qty = $product->qty - 1;
+        Cart::instance('cart')->update($rowId, $qty);
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
+    public function destroy($rowId){
+        Cart::instance('cart')->remove($rowId);
+        session()->flash('message', 'Item has been removed');
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
+    public function destroyAll(){
+        Cart::instance('cart')->destroy();
+        session()->flash('message', 'All Items has been removed');
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
+
+// jika page cartnya hilang kamu kurang ngasih
+	<div></div>
+```
+
+## Remove Product from Wishlist
+
+```php
+// ShopComponent
+    public function removeWishlist($product_id) {
+        foreach (Cart::instance('wishlist')->content() as $witem) {
+            if ($witem->rowId == $product_id) {
+                Cart::instance('wishlist')->remove($witem->rowId);
+                $this->emitTo('wishlist-count-component','refreshComponent');
+                return;
+            }
+        }
+    }
+
+// shop-comp
+ wire:click.prevent="removeWishlist({{$prod->id}})"
+```
+
+## Show All Wishlisted Products
+
+php artisan make:livewire WishlistComponent
+
+Route::get('/wishlist', WishlistComponent::class)->name('product.wishlist');
+
+```php
+// WishlistComponent
+    public function removeWishlist($product_id) {
+        foreach (Cart::instance('wishlist')->content() as $witem) {
+            if ($witem->rowId == $product_id) {
+                Cart::instance('wishlist')->remove($witem->rowId);
+                $this->emitTo('wishlist-count-component','refreshComponent');
+                return;
+            }
+        }
+    }
+    public function render()
+    {
+        return view('livewire.wishlist-component')->layout('layouts.base');
+    }
+
+// wishlist
+<div>
+	<!--main area-->
+	<main id="main" class="main-site left-sidebar">
+
+		<div class="container">
+
+			<div class="wrap-breadcrumb">
+				<ul>
+					<li class="item-link"><a href="/" class="link">home</a></li>
+					<li class="item-link"><span>Wishlist</span></li>
+				</ul>
+			</div>
+			
+			<style>
+				.product-wish{
+					position: absolute;
+					top: 10%;
+					left: 0;
+					z-index: 99;
+					right: 30px;
+					text-align: right;
+					padding-top: 0;
+				}
+				.product-wish .fa{
+					color: #cbcbcb;
+					font-size: 32px;
+				}
+				.product-wish .fa:hover{
+					color: #ff7007;
+				}
+				.product-wish .fill-heart{
+					color: #ff7007 !important;
+				}
+			</style>
+			<div class="row">
+				@if (Cart::instance('wishlist')->content()->count() > 0)
+					<ul class="product-list grid-products equal-container">				
+						@forelse (Cart::instance('wishlist')->content() as $item)
+							<li class="col-lg-3 col-md-6 col-sm-6 col-xs-6 ">
+								<div class="product product-style-3 equal-elem ">
+									<div class="product-thumnail">
+										<a href="{{ route('product.details', ['slug'=>$item->model->slug]) }}" title="{{$item->model->name}}">
+											<figure><img src="{{asset('assets/images/products')}}/{{$item->model->image}}" alt="{{$item->model->name}}"></figure>
+										</a>
+									</div>
+									<div class="product-info">
+										<a href="{{ route('product.details', ['slug'=>$item->model->slug]) }}" class="product-name"><span>{{$item->model->name}}</span></a>
+										<div class="wrap-price"><span class="product-price">${{$item->model->regular_price}}</span></div>
+										<a href="#" class="btn add-to-cart" wire:click.prevent="store({{$item->model->id}},'{{$item->model->name}}','{{$item->model->regular_price}}')">Add To Cart</a>
+										<div class="product-wish">
+											<a href="#" wire:click.prevent="removeWishlist({{$item->model->id}})"><i class="fa fa-heart fill-heart"></i></a>
+										</div>
+									</div>
+								</div>
+							</li>
+						@empty
+							
+						@endforelse
+
+					</ul>
+				@endif
+			</div>
+		</div><!--end container-->
+
+	</main>
+	<!--main area-->
+</div>
+
+// wishlist-count
+{{ route('product.wishlist') }}
+```
+
+## Move Product From Wishlist to Cart and Make Quantity Working on Details Page
+
+```php
+// WishlistComponent
+    public function WishlistToCart($rowId) {
+        $item = Cart::instance('wishlist')->get($rowId);
+        Cart::instance('wishlist')->remove($rowId);
+        Cart::instance('cart')->add($item->id, $item->name, 1, $item->price)->associate('App\Models\Product');
+        $this->emitTo('wishlist-count-component','refreshComponent');
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
+
+// wishlist
+<a href="#" class="btn add-to-cart" wire:click.prevent="WishlistToCart('{{$item->rowId}}')">Move To Cart</a>
+
+// cart-count
+{{ route('product.cart') }}
+
+// DetailsComponent
+    public $slug;
+    public $qty;
+    public function mount($slug){
+        $this->slug = $slug;
+        $this->qty = 1;
+    }
+    
+    public function store($prod_id, $prod_name, $prod_price){
+        Cart::instance('cart')->add($prod_id, $prod_name, $this->qty, $prod_price)->associate('App\Models\Product');
+        session()->flash('message', 'Item added in Cart');
+        return redirect()->route('product.cart');
+    }
+    public function decreaseQty(){
+        if ($this->qty > 1) {
+            $this->qty--;
+        }
+    }
+    public function increaseQty(){
+        $this->qty++;
+    }
+
+// detail
+	<div class="quantity">
+		<span>Quantity:</span>
+		<div class="quantity-input">
+			<input type="text" name="product-quatity" value="1" data-max="120" pattern="[0-9]*" wire:model="qty">
+			
+			<a class="btn btn-reduce" href="#" wire:click.prevent="decreaseQty"></a>
+			<a class="btn btn-increase" href="#" wire:click.prevent="increaseQty"></a>
+		</div>
+	</div>
+
+// if when click button page not show add div on top and bottom	
+```
+
+## 

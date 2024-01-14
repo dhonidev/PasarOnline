@@ -10,14 +10,24 @@ use Cart;
 class DetailsComponent extends Component
 {
     public $slug;
+    public $qty;
     public function mount($slug){
         $this->slug = $slug;
+        $this->qty = 1;
     }
     
     public function store($prod_id, $prod_name, $prod_price){
-        Cart::add($prod_id, $prod_name, 1, $prod_price)->associate('App\Models\Product');
+        Cart::instance('cart')->add($prod_id, $prod_name, $this->qty, $prod_price)->associate('App\Models\Product');
         session()->flash('message', 'Item added in Cart');
         return redirect()->route('product.cart');
+    }
+    public function decreaseQty(){
+        if ($this->qty > 1) {
+            $this->qty--;
+        }
+    }
+    public function increaseQty(){
+        $this->qty++;
     }
     public function render()
     {
