@@ -7851,3 +7851,372 @@ Route::get('/wishlist', WishlistComponent::class)->name('product.wishlist');
 
 ## Admin Create Coupons
 
+php artisan make:model Coupon -m
+
+```php
+// coupons
+	$table->string('code')->unique();
+	$table->enum('type',['fixed','percent']);
+	$table->decimal('value');
+	$table->decimal('cart_value');
+
+// Coupon
+protected $table = 'coupons';
+
+// web
+    Route::get('/admin/coupons',AdminCouponsComponent::class)->name('admin.coupons');
+    Route::get('/admin/coupons/add',AdminAddCouponComponent::class)->name('admin.coupons.add');
+    Route::get('/admin/coupons/edit/{coupon_id}',AdminEditCouponComponent::class)->name('admin.coupons.edit');
+
+// base
+	<li class="menu-item" >
+		<a title="Coupons Setting" href="{{ route('admin.coupons') }}">Coupons Setting</a>
+	</li>
+```
+php artisan migrate
+php artisan make:livewire admin/AdminCouponsComponent
+php artisan make:livewire admin/AdminEddCouponComponent
+php artisan make:livewire admin/AdminEditCouponComponent
+
+```php
+// AdminCouponsComponent
+    use WithPagination;
+    public function deleteCoupon($coupon_id){
+        $coupon = Coupon::find($coupon_id); 
+        $coupon->delete(); 
+        session()->flash('message','Coupon has been deleted successfully!'); 
+    }
+    public function render()
+    {
+        $coupons = Coupon::paginate(5);
+        return view('livewire.admin.admin-coupons-component',['coupons'=>$coupons])->layout('layouts.base');
+    }
+
+// AdminAddCouponComponent
+    public $code;
+    public $type;
+    public $value;
+    public $cart_value;
+    
+    public function updated($fields) {
+        $this->validateOnly($fields, [
+            'code' => 'required|unique:coupons',
+            'type' => 'required',
+            'value' => 'required|numeric',
+            'cart_value' => 'required|numeric'
+        ]);
+    }
+
+    public function storeCoupon(){
+        $this->validate([
+            'code' => 'required|unique:coupons',
+            'type' => 'required',
+            'value' => 'required|numeric',
+            'cart_value' => 'required|numeric'
+        ]);
+        $coupon = new Coupon();
+        $coupon->code = $this->code;
+        $coupon->type = $this->type;
+        $coupon->value = $this->value;
+        $coupon->cart_value = $this->cart_value;
+        $coupon->save();
+        session()->flash('message','Coupon has been created successfully!');
+    }
+
+    public function render()
+    {
+        return view('livewire.admin.admin-add-coupon-component')->layout('layouts.base');
+    }
+
+// AdminEditCouponComponent
+    public $code;
+    public $type;
+    public $value;
+    public $cart_value;
+    public $coupon_id;
+    
+    public function mount($coupon_id) {
+        $coupon = Coupon::find($coupon_id);
+        $this->code = $coupon->code;
+        $this->type = $coupon->type;
+        $this->value = $coupon->value;
+        $this->cart_value = $coupon->cart_value;
+    }
+
+    public function updated($fields) {
+        $this->validateOnly($fields, [
+            'code' => 'required|unique:coupons',
+            'type' => 'required',
+            'value' => 'required|numeric',
+            'cart_value' => 'required|numeric'
+        ]);
+    }
+
+    public function updateCoupon(){
+        $this->validate([
+            'code' => 'required|unique:coupons',
+            'type' => 'required',
+            'value' => 'required|numeric',
+            'cart_value' => 'required|numeric'
+        ]);
+        $coupon = Coupon::find($this->coupon_id);
+        $coupon->code = $this->code;
+        $coupon->type = $this->type;
+        $coupon->value = $this->value;
+        $coupon->cart_value = $this->cart_value;
+        $coupon->save();
+        session()->flash('message','Coupon has been created successfully!');
+    }
+    public function render()
+    {
+        return view('livewire.admin.admin-edit-coupon-component')->layout('layouts.base');
+    }
+```
+
+admin-coupon
+
+```php
+<div>
+    <style>
+        nav svg{
+            height: 20px;
+        }
+        nav .hidden{
+            display: block !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-md-6">All Coupons</div>
+                            <div class="col-md-6">
+                                <a href="{{ route('admin.coupons.add') }}" class="btn btn-success pull-right">Add New</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        @if (Session::has('message'))
+                            <div class="alert alert-success" role="alert">{{Session::get('message')}}</div>
+                        @endif
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Id</th>
+                                    <th>Coupon Code</th>
+                                    <th>Coupon Type</th>
+                                    <th>Coupon Value</th>
+                                    <th>Cart Value</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($coupons as $cop)
+                                    <tr>
+                                        <td>{{$cop->id}}</td>
+                                        <td>{{$cop->code}}</td>
+                                        <td>{{$cop->type}}</td>
+                                        @if ($cop->type == 'fixed')
+                                            <td>{{$cop->value}}</td>
+                                        @else
+                                            <td>{{$cop->value}} %</td>
+                                        @endif
+                                        <td>{{$cop->cart_value}}</td>
+                                        <td>
+                                            <a href="{{ route('admin.coupons.edit', ['coupon_id'=>$cop->id]) }}"><i class="fa fa-edit fa-2x"></i></a>
+                                            <a href="" onclick="confirm('Are you sure, You want to delete this coupon?') || event.stopImmediatePropagation()" wire:click.prevent="deleteCoupon({{$cop->id}})" style="margin-left: 10px;"><i class="fa fa-times fa-2x text-danger"></i></a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    
+                                @endforelse
+                            </tbody>
+                        </table>
+                        {{$coupons->links()}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+admin-add-coupon
+
+```php
+<div>
+    <style>
+        nav svg{
+            height: 20px;
+        }
+        nav .hidden{
+            display: block !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6">
+                                <a href="{{ route('admin.coupons') }}" class="btn btn-success">All Coupons</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        @if (Session::has('message'))
+                            <div class="alert alert-success">{{Session::get('message')}}</div>
+                        @endif
+                        <form action="" class="form-horizontal" wire:submit.prevent="storeCoupon">
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Code</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Coupon Code" class="form-control input-md" wire:model="code">
+                                    @error('code')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Type</div>
+                                <div class="col-md-4">
+                                    <select name="" id="" class="form-control"  wire:model="type">
+                                        <option value="">Select</option>
+                                        <option value="fixed">Fixed</option>
+                                        <option value="percent">Percent</option>
+                                    </select>
+                                    @error('type')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Value</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Coupon Value" class="form-control input-md" wire:model="value">
+                                    @error('value')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Cart Value</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Cart Value" class="form-control input-md" wire:model="cart_value">
+                                    @error('cart_value')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label"></div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+admin-edit-coupon
+
+```php
+<div>
+    <style>
+        nav svg{
+            height: 20px;
+        }
+        nav .hidden{
+            display: block !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6">
+                                <a href="{{ route('admin.coupons') }}" class="btn btn-success">All Coupons</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        @if (Session::has('message'))
+                            <div class="alert alert-success">{{Session::get('message')}}</div>
+                        @endif
+                        <form action="" class="form-horizontal" wire:submit.prevent="updateCoupon">
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Code</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Coupon Code" class="form-control input-md" wire:model="code">
+                                    @error('code')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Type</div>
+                                <div class="col-md-4">
+                                    <select name="" id="" class="form-control"  wire:model="type">
+                                        <option value="">Select</option>
+                                        <option value="fixed">Fixed</option>
+                                        <option value="percent">Percent</option>
+                                    </select>
+                                    @error('type')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Coupon Value</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Coupon Value" class="form-control input-md" wire:model="value">
+                                    @error('value')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label">Cart Value</div>
+                                <div class="col-md-4">
+                                    <input type="text" placeholder="Cart Value" class="form-control input-md" wire:model="cart_value">
+                                    @error('cart_value')
+                                        <p class="text-danger">{{$message}}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-4 control-label"></div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="btn btn-primary">Update</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+## Admin Add Coupons Expiry Date
+
+xx
+
+```php
+// 
+
+```
+
