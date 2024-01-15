@@ -29,6 +29,25 @@ class CartComponent extends Component
         session()->flash('message', 'All Items has been removed');
         $this->emitTo('cart-count-component','refreshComponent');
     }
+    public function saveForLater($rowId){
+        $item = Cart::instance('cart')->get($rowId);
+        Cart::instance('cart')->remove($rowId);
+        Cart::instance('saveForLater')->add($item->id, $item->name, 1 , $item->price)->associate('App\Models\Product');
+        $this->emitTo('cart-count-component','refreshComponent');
+        session()->flash('message', 'Items has been saved for later');
+    }
+    public function saveForLaterToCart($rowId){
+        $item = Cart::instance('saveForLater')->get($rowId);
+        Cart::instance('saveForLater')->remove($rowId);
+        Cart::instance('cart')->add($item->id, $item->name, 1 , $item->price)->associate('App\Models\Product');
+        $this->emitTo('cart-count-component','refreshComponent');
+        session()->flash('message', 'Item has move from saved for later to cart');
+    }
+    public function deleteSaveForLater($rowId){
+        Cart::instance('saveForLater')->remove($rowId);
+        session()->flash('message', 'Item has been removed from save for later');
+        $this->emitTo('cart-count-component','refreshComponent');
+    }
     public function render()
     {
         return view('livewire.cart-component')->layout('layouts.base');
