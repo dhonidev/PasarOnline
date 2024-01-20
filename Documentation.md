@@ -8211,12 +8211,871 @@ admin-edit-coupon
 </div>
 ```
 
-## Admin Add Coupons Expiry Date
-
-xx
+## Admin Apply Coupons
 
 ```php
-// 
+// CartComponent
+    public $hasCouponCode;
+    public $couponCode;
+    public $discount;
+    public $subTotalAfterDiscount;
+    public $taxAfterDiscount;
+    public $totalAfterDiscount;
 
+	
+    public function rendemCoupon(){
+        $coupon = Coupon::where('code',$this->couponCode)->where('cart_value','<=', Cart::instance('cart')->subtotal())->first();
+        if (!$coupon) {
+            session()->flash('coupon_message', 'Coupon code is invalid');
+            return;
+        }
+        session()->put('coupon',[
+            'code' => $coupon->code,
+            'type' => $coupon->type,
+            'value' => $coupon->value,
+            'cart_value' => $coupon->cart_value
+        ]);
+    }
+    public function calDiscount(){
+        if (session()->has('coupon')) {
+            if (session()->get('coupon')['type'] == 'fixed') {
+                $this->discount = session()->get('coupon')['value'];
+            } else {
+                $this->discount = (Cart::instance('cart')->subtotal() *session()->get('coupon')['value'])/100;
+            }
+            $this->subTotalAfterDiscount = Cart::instance('cart')->subtotal()  - $this->discount;
+            $this->taxAfterDiscount = ($this->subTotalAfterDiscount * config('cart.tax'))/100;
+            $this->totalAfterDiscount = $this->subTotalAfterDiscount + $this->taxAfterDiscount;            
+        }
+    }
+    public function removeCoupon(){
+        session()->forget('coupon');
+    }
+    public function render()
+    {
+        if (session()->has('coupon')) {
+            if (Cart::instance('cart')->subtotal() < session()->get('coupon')['cart_value']) {
+                session()->forget('coupon');
+            } else {
+                $this->calDiscount();
+            }
+        }
+        return view('livewire.cart-component')->layout('layouts.base');
+    }
+
+// cart.php
+'thousand_seperator' => ''
+
+// cart-comp
+	<div class="summary">
+		<div class="order-summary">
+			<h4 class="title-box">Order Summary</h4>
+			<p class="summary-info"><span class="title">Subtotal</span><b class="index">${{Cart::instance('cart')->subtotal()}}</b></p>
+			@if (Session::has('coupon'))
+				<p class="summary-info"><span class="title">Discount ({{Session::get('coupon')['code']}}) <a href="#" wire:click.prevent="removeCoupon"><i class="fa fa-times text-danger"></i></a></span><b class="index"> - ${{number_format($discount,2)}}</b></p>							
+				<p class="summary-info"><span class="title">Subtotal with discount</span><b class="index">${{number_format($subTotalAfterDiscount,2)}}</b></p>
+				<p class="summary-info"><span class="title">Tax ({{config('cart.tax')}}%)</span><b class="index">${{number_format($taxAfterDiscount,2)}}</b></p>
+				<p class="summary-info total-info "><span class="title">Total</span><b class="index">${{number_format($totalAfterDiscount,2)}}</b></p>
+			@else
+				<p class="summary-info"><span class="title">Tax</span><b class="index">${{Cart::instance('cart')->tax()}}</b></p>
+				<p class="summary-info"><span class="title">Shipping</span><b class="index">Free Shipping</b></p>
+				<p class="summary-info total-info "><span class="title">Total</span><b class="index">${{Cart::instance('cart')->total()}}</b></p>
+			@endif
+		</div>
+		<div class="checkout-info">
+			@if (!Session::has('coupon'))
+				<label class="checkbox-field">
+					<input class="frm-input " name="have-code" id="have-code" value="1" type="checkbox" wire:model="hasCouponCode"><span>I have coupon code</span>
+				</label>
+				@if ($hasCouponCode == 1)
+					<div class="summary-item">
+						@if (Session::has('coupon_message'))
+							<div class="alert alert-danger">
+								<strong>Info</strong> {{Session::get('coupon_message')}}
+							</div>
+						@endif
+						<form wire:submit.prevent="rendemCoupon">
+							<h4 class="title-box">Coupon Code</h4>
+							<p class="row-in-form">
+								<label for="coupon-code">Enter your coupon code:</label>
+								<input type="text" name="coupon-code" wire:model="couponCode">
+							</p>
+							<button type="submit" class="btn btn-small">Apply</button>
+						</form>
+					</div>
+				@endif
+				<a class="btn btn-checkout" href="checkout.html">Check out</a>
+				<a class="link-to-shop" href="shop.html">Continue Shopping<i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+			@endif
+		</div>						
+		<div class="update-clear">
+			<a class="btn btn-clear" href="#" wire:click.prevent="destroyAll()">Clear Shopping Cart</a>
+			<a class="btn btn-update" href="#">Update Shopping Cart</a>
+		</div>
+	</div>
 ```
 
+## Admin Add Coupons Expiry Date
+
+php artisan make:migration add_expiry_date_to_coupons_table --table=coupons
+php artisan migrate
+
+```php
+// coupons
+$table->date('expiry_date')->default(now());
+
+// admin-coupon
+	<th>Expire Date</th>
+	<td>{{$cop->expiry_date}}</td>
+
+// admin-add-coupon
+	<div class="form-group">
+		<div class="col-md-4 control-label">Expire Date</div>
+		<div class="col-md-4">
+			<input type="text" id="expiry_date" placeholder="Expire Date" class="form-control input-md" wire:model="expiry_date">
+			@error('expiry_date')
+				<p class="text-danger">{{$message}}</p>
+			@enderror
+		</div>
+	</div>
+
+
+@push('js')
+    <script>
+        $(function(){
+            $('#expiry_date').datetimepicker({
+                format: 'Y-MM-DD'
+            })
+            .on('dp.change',function(e){
+                var data = $('#expiry_date').val();
+                @this.set('expiry_date'); 
+            })
+        })
+    </script>
+@endpush
+
+// AdminAddCouponComponent
+public $expiry_date;
+,
+	'expiry_date' => 'required'
+
+,
+	'expiry_date' => 'required'
+
+$coupon->expiry_date = $this->expiry_date;
+
+// admin-edit-coupon
+	<div class="form-group">
+		<div class="col-md-4 control-label">Expire Date</div>
+		<div class="col-md-4">
+			<input type="text" id="expiry_date" placeholder="Expire Date" class="form-control input-md" wire:model="expiry_date">
+			@error('expiry_date')
+				<p class="text-danger">{{$message}}</p>
+			@enderror
+		</div>
+	</div>
+
+@push('js')
+    <script>
+        $(function(){
+            $('#expiry_date').datetimepicker({
+                format: 'Y-MM-DD'
+            })
+            .on('dp.change',function(e){
+                var data = $('#expiry_date').val();
+                @this.set('expiry_date'); 
+            })
+        })
+    </script>
+@endpush
+
+// AdminEditCouponComponent
+    public $expiry_date;
+
+	$this->expiry_date = $coupon->expiry_date;
+
+	'expiry_date' => 'required'
+
+	'expiry_date' => 'required'
+
+	$coupon->expiry_date = $this->expiry_date;
+
+// CartComponent
+rendemCoupon()
+$coupon = Coupon::where('code',$this->couponCode)->where('expiry_date','>=', Carbon::today())
+```
+
+## Admin Create Model, Migration and Relationship for Checkout
+
+php artisan make:model Order -m
+php artisan make:model OrderItem -m
+php artisan make:model Shipping -m
+php artisan make:model Transaction -m
+
+```php
+// orders
+	$table->bigInteger('user_id')->unsigned();
+	$table->decimal('subtotal');
+	$table->decimal('discount')->default(0);
+	$table->decimal('tax');
+	$table->decimal('total');
+	$table->string('firstname');
+	$table->string('lastname');
+	$table->string('phone');
+	$table->string('email');
+	$table->text('line1');
+	$table->text('line2')->nullable();
+	$table->string('city');
+	$table->string('province');
+	$table->string('country');
+	// $table->string('landmark')->nullable();
+	$table->string('zipcode');
+	$table->string('type')->default('home');
+	$table->enum('status',['ordered','delivered','canceled'])->default('ordered');
+	$table->boolean('is_shipping_different')->default(false);
+	$table->date('delivered_date')->nullable();
+	$table->date('canceled_date')->nullable();
+	$table->timestamps();
+	$table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');  
+
+// order_items
+	$table->bigInteger('product_id')->unsigned();
+	$table->bigInteger('order_id')->unsigned();
+	$table->decimal('price');
+	$table->integer('quantity');
+	$table->longText('options')->nullable();
+	$table->boolean('rstatus')->default(false);
+	$table->timestamps();
+	$table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+	$table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+
+// transactions
+	$table->bigInteger('user_id')->unsigned();
+	$table->bigInteger('order_id')->unsigned();
+	$table->enum('mode',['cod','card','paypal']);
+	$table->enum('status',['pending','approved','declined','refunded'])->default('pending');
+	$table->timestamps();
+	$table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+	$table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+
+// shippings
+	$table->bigInteger('order_id')->unsigned();
+	$table->string('firstname');
+	$table->string('lastname');
+	$table->string('phone');
+	$table->string('email');
+	$table->text('line1');
+	$table->text('line2')->nullable();
+	$table->string('city');
+	$table->string('privence');
+	$table->string('country');
+	// $table->string('landmark')->nullable();
+	$table->string('zipcode');
+	$table->string('type')->default('home');
+	$table->timestamps();
+	$table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+
+// Order
+    protected $table = 'orders';
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function shipping()
+    {
+        return $this->hasOne(Shipping::class);
+    }
+
+    public function transaction()
+    {
+        return $this->hasOne(Transaction::class);
+    }
+
+// OrderItem
+    protected $table = 'order_items';
+    
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+// Transaction
+    protected $table = 'transactions';
+    
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+// Shipping
+    protected $table = 'transactions';
+    
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+```
+
+php artisan migrate
+
+
+## Cart Settings for Checkout
+
+Route::get('/checkout', CheckoutComponent::class)->name('checkout');
+
+```php
+// CartComponent
+    public function checkout(){
+        if (Auth::check()) {
+            return redirect()->route('checkout');
+        } else {
+            return redirect()->route('login');
+        }
+    }
+    
+    public function amountCheckout(){
+        if (session()->has('coupon')) {
+            session()->put('checkout',[
+                'discount' => $this->discount,
+                'subtotal' => $this->subTotalAfterDiscount,
+                'tax' => $this->taxAfterDiscount,
+                'total' => $this->totalAfterDiscount
+            ]);
+        } else {
+            session()->put('checkout',[
+                'discount' => 0,
+                'subtotal' => Cart::instance('cart')->subtotal(),
+                'tax' => Cart::instance('cart')->tax(),
+                'total' => Cart::instance('cart')->total()
+            ]);
+        }
+    }
+
+    public function render()
+    {
+        if (session()->has('coupon')) {
+            if (Cart::instance('cart')->subtotal() < session()->get('coupon')['cart_value']) {
+                session()->forget('coupon');
+            } else {
+                $this->calDiscount();
+            }
+        }
+        $this->amountCheckout();
+        return view('livewire.cart-component')->layout('layouts.base');
+    }
+
+// cart-comp
+	@if (Cart::instance('cart')->count() > 0)
+		<div class="wrap-iten-in-cart">
+			@if (Session::has('message'))
+				<div class="alert alert-success">
+					<strong>Success</strong> {{Session::get('message')}}
+				</div>
+			@endif
+			@if (Cart::instance('cart')->count() > 0)
+				<h3 class="box-title">Products Name</h3>
+				<ul class="products-cart">
+					@forelse (Cart::instance('cart')->content() as $cart)
+						<li class="pr-cart-item">
+							<div class="product-image">
+								<figure><img src="{{asset('assets/images/products')}}/{{$cart->model->image}}" alt="{{$cart->model->name}}"></figure>
+							</div>
+							<div class="product-name">
+								<a class="link-to-product" href="{{ route('product.details', ['slug'=>$cart->model->slug]) }}">{{$cart->model->name}}</a>
+							</div>
+							<div class="price-field produtc-price"><p class="price">${{$cart->model->regular_price}}</p></div>
+							<div class="quantity">
+								<div class="quantity-input">
+									<input type="text" name="product-quatity" value="{{$cart->qty}}" data-max="120" pattern="[0-9]*" >									
+									<a class="btn btn-increase" href="#" wire:click.prevent="increaseQuantity('{{$cart->rowId}}')"></a>
+									<a class="btn btn-reduce" href="#" wire:click.prevent="decreaseQuantity('{{$cart->rowId}}')"></a>
+								</div>
+								<p class="text-center"><a href="#" wire:click.prevent="saveForLater('{{$cart->rowId}}')">Save for Later</a></p>
+							</div>
+							<div class="price-field sub-total"><p class="price">${{$cart->subtotal}}</p></div>
+							<div class="delete">
+								<a href="#" class="btn btn-delete" title="" wire:click.prevent="destroy('{{$cart->rowId}}')">
+									<span>Delete from your cart</span>
+									<i class="fa fa-times-circle" aria-hidden="true"></i>
+								</a>
+							</div>
+						</li>
+					@empty
+						<p>No Item in Cart</p>
+					@endforelse
+				</ul>
+			@endif
+		</div>
+
+		<div class="summary">
+			<div class="order-summary">
+				<h4 class="title-box">Order Summary</h4>
+				<p class="summary-info"><span class="title">Subtotal</span><b class="index">${{Cart::instance('cart')->subtotal()}}</b></p>
+				@if (Session::has('coupon'))
+					<p class="summary-info"><span class="title">Discount ({{Session::get('coupon')['code']}}) <a href="#" wire:click.prevent="removeCoupon"><i class="fa fa-times text-danger"></i></a></span><b class="index"> - ${{number_format($discount,2)}}</b></p>							
+					<p class="summary-info"><span class="title">Subtotal with discount</span><b class="index">${{number_format($subTotalAfterDiscount,2)}}</b></p>
+					<p class="summary-info"><span class="title">Tax ({{config('cart.tax')}}%)</span><b class="index">${{number_format($taxAfterDiscount,2)}}</b></p>
+					<p class="summary-info total-info "><span class="title">Total</span><b class="index">${{number_format($totalAfterDiscount,2)}}</b></p>
+				@else
+					<p class="summary-info"><span class="title">Tax</span><b class="index">${{Cart::instance('cart')->tax()}}</b></p>
+					<p class="summary-info"><span class="title">Shipping</span><b class="index">Free Shipping</b></p>
+					<p class="summary-info total-info "><span class="title">Total</span><b class="index">${{Cart::instance('cart')->total()}}</b></p>
+				@endif
+			</div>
+			<div class="checkout-info">
+				@if (!Session::has('coupon'))
+					<label class="checkbox-field">
+						<input class="frm-input " name="have-code" id="have-code" value="1" type="checkbox" wire:model="hasCouponCode"><span>I have coupon code</span>
+					</label>
+					@if ($hasCouponCode == 1)
+						<div class="summary-item">
+							@if (Session::has('coupon_message'))
+								<div class="alert alert-danger">
+									<strong>Info</strong> {{Session::get('coupon_message')}}
+								</div>
+							@endif
+							<form wire:submit.prevent="rendemCoupon">
+								<h4 class="title-box">Coupon Code</h4>
+								<p class="row-in-form">
+									<label for="coupon-code">Enter your coupon code:</label>
+									<input type="text" name="coupon-code" wire:model="couponCode">
+								</p>
+								<button type="submit" class="btn btn-small">Apply</button>
+							</form>
+						</div>
+					@endif
+					<a class="btn btn-checkout" href="#" wire:click.prevent="checkout()">Check out</a>
+					<a class="link-to-shop" href="/shop">Continue Shopping<i class="fa fa-arrow-circle-right" aria-hidden="true"></i></a>
+				@endif
+			</div>						
+			<div class="update-clear">
+				<a class="btn btn-clear" href="#" wire:click.prevent="destroyAll()">Clear Shopping Cart</a>
+				<a class="btn btn-update" href="#">Update Shopping Cart</a>
+			</div>
+		</div>
+	@else
+		<div class="text-center" style="padding: 30px 0;">
+			<h1>Your cart is empty!</h1>
+			<p>Add item to it now</p>
+			<a href="/shop" class="btn btn-success">Shop Now</a>
+		</div>
+	@endif
+```
+
+## Checkout With Cash On Delivery
+
+```php
+// CheckoutComponent
+    public $shipping_address;
+    public $firstname;
+    public $lastname;
+    public $email;
+    public $phone;
+    public $line1;
+    public $line2;
+    public $city;
+    public $province;
+    public $country;
+    public $zipcode;
+    public $s_firstname;
+    public $s_lastname;
+    public $s_email;
+    public $s_phone;
+    public $s_line1;
+    public $s_line2;
+    public $s_city;
+    public $s_province;
+    public $s_country;
+    public $s_zipcode;
+    public $thankyou;
+    public $paymentmode;
+
+    public function updated($fields){
+        $this->validateOnly($fields,[
+            'firstname' => 'required',
+            'lastname' => 'required',
+            'email' => 'required|email',
+            'phone' => 'required|numeric',
+            'line1' => 'required',
+            'city' => 'required',
+            'province' => 'required',
+            'country' => 'required',
+            'zipcode' => 'required',
+            'paymentmode' => 'required'
+        ]);
+        if ($this->shipping_address) {
+            $this->validateOnly($fields,[
+                's_firstname' => 'required',
+                's_lastname' => 'required',
+                's_email' => 'required|email',
+                's_phone' => 'required|numeric',
+                's_line1' => 'required',
+                's_city' => 'required',
+                's_province' => 'required',
+                's_country' => 'required',
+                's_zipcode' => 'required'
+            ]);
+        }
+    }
+
+    public function placeOrder(){
+        $this->validate([
+            'firstname' => 'required',
+            'lastname' => 'required',
+            'email' => 'required|email',
+            'phone' => 'required|numeric',
+            'line1' => 'required',
+            'city' => 'required',
+            'province' => 'required',
+            'country' => 'required',
+            'zipcode' => 'required',
+            'paymentmode' => 'required'
+        ]);
+        $order = new Order();
+        $order->user_id = Auth::user()->id;
+        $order->subtotal = session()->get('checkout')['subtotal'];
+        $order->discount = session()->get('checkout')['discount'];
+        $order->tax = session()->get('checkout')['tax'];
+        $order->total = session()->get('checkout')['total'];
+        $order->firstname = $this->firstname;
+        $order->lastname = $this->lastname;
+        $order->email = $this->email;
+        $order->phone = $this->phone;
+        $order->line1 = $this->line1;
+        $order->line2 = $this->line2;
+        $order->city = $this->city;
+        $order->province = $this->province;
+        $order->country = $this->country;
+        $order->zipcode = $this->zipcode;
+        $order->status = 'ordered';
+        $order->is_shipping_different = $this->shipping_address ? 1 : 0;
+        $order->save();
+
+        foreach (Cart::instance('cart')->content() as $item) {
+            $orderItem = new OrderItem();
+            $orderItem->product_id = $item->id;
+            $orderItem->order_id = $order->id;
+            $orderItem->price = $item->price;
+            $orderItem->quantity = $item->qty;
+            $orderItem->save();
+        }
+
+        if ($this->shipping_address) {
+            $this->validate([
+                's_firstname' => 'required',
+                's_lastname' => 'required',
+                's_email' => 'required|email',
+                's_phone' => 'required|numeric',
+                's_line1' => 'required',
+                's_city' => 'required',
+                's_province' => 'required',
+                's_country' => 'required',
+                's_zipcode' => 'required',
+            ]);
+
+            $shipping = new Shipping();
+            $shipping->order_id = $order->id;
+            $shipping->firstname = $this->s_firstname;
+            $shipping->lastname = $this->s_lastname;
+            $shipping->email = $this->s_email;
+            $shipping->phone = $this->s_phone;
+            $shipping->line1 = $this->s_line1;
+            $shipping->line2 = $this->s_line2;
+            $shipping->city = $this->s_city;
+            $shipping->province = $this->s_province;
+            $shipping->country = $this->s_country;
+            $shipping->zipcode = $this->s_zipcode;
+            $shipping->save();
+        }
+
+        if ($this->paymentmode == 'cod') {
+            $transaction = new Transaction();
+            $transaction->user_id = Auth::user()->id;
+            $transaction->order_id = $order->id;
+            $transaction->mode = 'cod';
+            $transaction->status = 'pending';
+            $transaction->save();
+        }
+        
+        $this->thankyou = 1;
+        Cart::instance('cart')->destroy();
+        session()->forget('checkout');
+
+    }
+
+    public function verifyCheckout(){
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        } else if ($this->thankyou) {
+            return redirect()->route('thankyou');
+        }  else if(!session()->get('checkout')) {
+            return redirect()->route('product.cart');
+        } else {
+
+        }
+        
+    }
+    public function render()
+    {
+        $this->verifyCheckout();
+        return view('livewire.checkout-component')->layout('layouts.base');
+    }
+
+// checkout-comp
+<div>
+	<!--main area-->
+	<main id="main" class="main-site">
+
+		<div class="container">
+
+			<div class="wrap-breadcrumb">
+				<ul>
+					<li class="item-link"><a href="/" class="link">home</a></li>
+					<li class="item-link"><span>Checkout</span></li>
+				</ul>
+			</div>
+			<div class=" main-content-area">
+				<form wire:submit.prevent="placeOrder">
+					<div class="row">
+						<div class="col-md-12">
+							<div class="wrap-address-billing">
+								<h3 class="box-title">Billing Address</h3>
+								<p class="row-in-form">
+									<label for="fname">first name<span>*</span></label>
+									<input type="text" name="fname" value="" placeholder="Your name" wire:model="firstname">
+									@error('firstname') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="lname">last name<span>*</span></label>
+									<input type="text" name="lname" value="" placeholder="Your last name" wire:model="lastname">
+									@error('lastname') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="email">Email Addreess:</label>
+									<input type="email" name="email" value="" placeholder="Type your email" wire:model="email">
+									@error('email') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="phone">Phone number<span>*</span></label>
+									<input type="number" name="phone" value="" placeholder="10 digits format" wire:model="phone">
+									@error('phone') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="add">Line1:</label>
+									<input type="text" name="add" value="" placeholder="Street at apartment number" wire:model="line1">
+									@error('line1') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="add">Line2:</label>
+									<input type="text" name="add" value="" placeholder="Street at apartment number" wire:model="line2">
+									@error('line2') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="city">Town / City<span>*</span></label>
+									<input type="text" name="city" value="" placeholder="City name" wire:model="city">
+									@error('city') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="city">Province<span>*</span></label>
+									<input type="text" name="city" value="" placeholder="City name" wire:model="province">
+									@error('province') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="country">Country<span>*</span></label>
+									<input type="text" name="country" value="" placeholder="United States" wire:model="country">
+									@error('country') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form">
+									<label for="zip-code">Postcode / ZIP:</label>
+									<input type="number" name="zip-code" value="" placeholder="Your postal code" wire:model="zipcode">
+									@error('zipcode') <span class="text-danger">{{$message}}</span> @enderror
+								</p>
+								<p class="row-in-form fill-wife">
+									<label class="checkbox-field">
+										<input name="different-add" id="different-add" value="1" type="checkbox" wire:model="shipping_address">
+										<span>Ship to a different address?</span>
+									</label>
+								</p>
+							</div>
+						</div>
+						@if ($shipping_address)
+							<div class="col-md-12">
+								<div class="wrap-address-billing">
+									<h3 class="box-title">Shipping Address</h3>
+									<p class="row-in-form">
+										<label for="fname">first name<span>*</span></label>
+										<input type="text" name="fname" value="" placeholder="Your name" wire:model="s_firstname">
+										@error('s_firstname') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="lname">last name<span>*</span></label>
+										<input type="text" name="lname" value="" placeholder="Your last name" wire:model="s_lastname">
+										@error('s_lastname') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="email">Email Addreess:</label>
+										<input type="email" name="email" value="" placeholder="Type your email" wire:model="s_email">
+										@error('s_email') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="phone">Phone number<span>*</span></label>
+										<input type="number" name="phone" value="" placeholder="10 digits format" wire:model="s_phone">
+										@error('s_phone') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="add">Line1:</label>
+										<input type="text" name="add" value="" placeholder="Street at apartment number" wire:model="s_line1">
+										@error('s_line1') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="add">Line2:</label>
+										<input type="text" name="add" value="" placeholder="Street at apartment number" wire:model="s_line2">
+										@error('s_line2') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="city">Town / City<span>*</span></label>
+										<input type="text" name="city" value="" placeholder="City name" wire:model="s_city">
+										@error('s_city') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="city">Province<span>*</span></label>
+										<input type="text" name="city" value="" placeholder="City name" wire:model="s_province">
+										@error('s_province') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="country">Country<span>*</span></label>
+										<input type="text" name="country" value="" placeholder="United States" wire:model="s_country">
+										@error('s_country') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+									<p class="row-in-form">
+										<label for="zip-code">Postcode / ZIP:</label>
+										<input type="number" name="zip-code" value="" placeholder="Your postal code" wire:model="s_zipcode">
+										@error('s_zipcode') <span class="text-danger">{{$message}}</span> @enderror
+									</p>
+								</div>
+							</div>
+						@endif
+					</div>
+					<div class="summary summary-checkout">
+						<div class="summary-item payment-method">
+							<h4 class="title-box">Payment Method</h4>
+							<p class="summary-info"><span class="title">Check / Money order</span></p>
+							<p class="summary-info"><span class="title">Credit Cart (saved)</span></p>
+							<div class="choose-payment-methods">
+								<label class="payment-method">
+									<input name="payment-method" id="payment-method-bank" value="cod" type="radio" wire:model="paymentmode">
+									<span>Cash oOn Delivery</span>
+									<span class="payment-desc">Order Now Pay on Delivery</span>
+								</label>
+								<label class="payment-method">
+									<input name="payment-method" id="payment-method-visa" value="card" type="radio" wire:model="paymentmode">
+									<span>Debit / Credit Card</span>
+									<span class="payment-desc">There are many variations of passages of Lorem Ipsum available</span>
+								</label>
+								<label class="payment-method">
+									<input name="payment-method" id="payment-method-paypal" value="paypal" type="radio" wire:model="paymentmode">
+									<span>Paypal</span>
+									<span class="payment-desc">You can pay with your credit</span>
+									<span class="payment-desc">card if you don't have a paypal account</span>
+								</label>
+								@error('paymentmode') <span class="text-danger">{{$message}}</span> @enderror
+							</div>
+							@if (Session::has('checkout'))
+								<p class="summary-info grand-total"><span>Grand Total</span> <span class="grand-total-price">${{Session::get('checkout')['total']}}</span></p>
+							@endif
+							<button type="submit" class="btn btn-medium">Place order now</button>
+						</div>
+						<div class="summary-item shipping-method">
+							<h4 class="title-box f-title">Shipping method</h4>
+							<p class="summary-info"><span class="title">Flat Rate</span></p>
+							<p class="summary-info"><span class="title">Fixed $0</span></p>
+						</div>
+					</div>
+				</form>
+			</div><!--end main content area-->
+		</div><!--end container-->
+
+	</main>
+	<!--main area-->
+</div>
+```
+
+php artisan make:livewire ThankyouComponent
+
+```php
+// ThankyouComponent
+->layout('layouts.base')
+
+// thankyou-comp
+<div>
+	<!--main area-->
+	<main id="main" class="main-site">
+
+		<div class="container">
+
+			<div class="wrap-breadcrumb">
+				<ul>
+					<li class="item-link"><a href="/" class="link">home</a></li>
+					<li class="item-link"><span>Thank You</span></li>
+				</ul>
+			</div>
+		</div>
+		
+		<div class="container pb-60">
+			<div class="row">
+				<div class="col-md-12 text-center">
+					<h2>Thank you for your order</h2>
+                    <p>A confirmation email was sent.</p>
+                    <a href="/shop" class="btn btn-submit btn-submitx">Continue Shopping</a>
+				</div>
+			</div>
+		</div><!--end container-->
+
+	</main>
+	<!--main area-->
+</div>
+```
+
+```php
+// CartComponent
+    public function checkout(){
+        if (Auth::check()) {
+            return redirect()->route('checkout');
+        } else {
+            return redirect()->route('login');
+        }
+    }
+    
+    public function amountCheckout(){
+        if (!Cart::instance('cart')->count() > 0) {
+            session()->forget('checkout');
+            return;
+        }
+        if (session()->has('coupon')) {
+            session()->put('checkout',[
+                'discount' => $this->discount,
+                'subtotal' => $this->subTotalAfterDiscount,
+                'tax' => $this->taxAfterDiscount,
+                'total' => $this->totalAfterDiscount
+            ]);
+        } else {
+            session()->put('checkout',[
+                'discount' => 0,
+                'subtotal' => Cart::instance('cart')->subtotal(),
+                'tax' => Cart::instance('cart')->tax(),
+                'total' => Cart::instance('cart')->total()
+            ]);
+        }
+    }
+```
+Route::get('/checkout', CheckoutComponent::class)->name('checkout');
+Route::get('/thankyou', ThankyouComponent::class)->name('thankyou');
+
+## 
