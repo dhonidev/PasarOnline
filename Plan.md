@@ -9,24 +9,24 @@
 9. 2 jt satu bulan, 500 rb 1 minggu
 10. expanse, save, other for a month
 11. post github aweek
+12. uangnya kekumpul lagi buat cover 20 jtnya/pas uang di futrnya keluar gas nikah 
 
 
 penyesalan
-1. 30 jt nyankut disaham 70% dari keuagan
+1. 20 jt nyankut disaham 70% dari keuagan [cant scalping, doing swing]
 2. tubuh sakit2
 3. tidur awal
-4. tidak bisa memulai bisnis
-5. tidak menyelesaikan satupun project
-6. tidak teratur bugeting
-7. sertifikat entah dimana
-8. managemen folder buruk
+4. tidak bisa memulai bisnis  [dalam proses pembuatan app]
+5. tidak menyelesaikan satupun project [kurang pencatatan, dokumentasi, management folder]
+6. tidak teratur bugeting [300,170,25,45,160,100 == 800, 200 other, 1 mom]
+7. sertifikat entah dimana[simpan dimana?]
+8. managemen folder buruk [catat]
 9. speend for item that i not use
-10. tidak sempat belajar ujian bumn
-11. personal branding
-12. E
-13. belum rutin ngaji
-14. belum rutin ke masjid
-15. belum hapal banyak surah
+10. tidak sempat belajar ujian bumn[bagi part kecil]
+11. personal branding [ATS]
+13. belum rutin ngaji [sempatin 2 menit saja dulu]
+14. belum rutin ke masjid [mulai dari subuh dulu]
+15. belum hapal banyak surah [baca surah2 abis sholat atau sebelum]
 16. bangun mulai molor2
 
 hal-hal lain
@@ -52,10 +52,22 @@ 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
 4. push every week
 5. do ti again and again
 
+kendala
+1. time up for code
+2. wathing film
+3. ona
+4. ketiduran
+
 1. make plan not much surah [4 surah long] [berubah saat surah sudah selesai]
 2. make plan 3 short surah [berubah tiap harinya]
 3. baca sedikit2 setelah sholat
 4. do it again and again
+
+kendala
+1. time in work
+2. sakit
+3. binggung surahnya
+4. sungkan keluar duluan
 
 1. subuhan dimasjid [ini dulu dirutinin]
 2. minta ibu bangunin
@@ -63,3 +75,14 @@ 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
 4. warning tidur diatas jam 22
 5. do it again and again
 
+kendala
+1. hujan
+2. tidur lebih jam 22
+3. tidak ada payung lagi
+4. mandi dingin
+
+
+pernikahan
+1. nungu saham futr mas keluar
+2. kontrakan habis dibulan maret [ade mau]
+3. jangan beli saham yang naik full beli dipucuk atau belik di bawah

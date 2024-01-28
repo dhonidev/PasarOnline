@@ -9078,4 +9078,706 @@ php artisan make:livewire ThankyouComponent
 Route::get('/checkout', CheckoutComponent::class)->name('checkout');
 Route::get('/thankyou', ThankyouComponent::class)->name('thankyou');
 
+## Admin Show Orders
+
+php artisan make:livewire admin/AdminOrderComponent
+
+```php
+// AdminOrderComponent
+    use WithPagination;
+    public function render()
+    {
+        $orders = Order::orderBY('created_at','ASC')->paginate(12);
+        return view('livewire.admin.admin-order-component',['orders'=>$orders])->layout('layouts.base');
+    }
+
+// admin-order
+<div>
+    <style>
+        nav svg {
+            height: 20px;
+        }
+        nav .hidden {
+            display: block !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        All Orders
+                    </div>
+                    <div class="panel-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>OrderId</th>
+                                    <th>Subtotal</th>
+                                    <th>Discount</th>
+                                    <th>Tax</th>
+                                    <th>Total</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Zipcode</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($orders as $order)
+                                    <tr>
+                                        <td>{{$order->id}}</td>
+                                        <td>${{$order->subtotal}}</td>
+                                        <td>${{$order->discount}}</td>
+                                        <td>${{$order->tax}}</td>
+                                        <td>${{$order->total}}</td>
+                                        <td>{{$order->firstname}}</td>
+                                        <td>{{$order->lastname}}</td>
+                                        <td>{{$order->phone}}</td>
+                                        <td>{{$order->email}}</td>
+                                        <td>{{$order->zipcode}}</td>
+                                        <td>{{$order->status}}</td>
+                                        <td>{{$order->created_at}}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        {{$orders->links()}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+// base
+	<li class="menu-item" >
+		<a title="All Orders" href="{{ route('admin.orders') }}">All Orders</a>
+	</li>
+```
+
+Route::get('/admin/orders',AdminOrderComponent::class)->name('admin.orders');
+
+## Admin Show Order Details
+
+php artisan make:livewire admin/AdminOrderDetailsComponent
+
+Route::get('/admin/orders/{order_id}',AdminOrderDetailsComponent::class)->name('admin.orders.details');
+
+```php
+// AdminOrderDetailsComponent
+    public $order_id;
+    function mount($order_id) {
+        $this->order_id = $order_id;
+    }
+    public function render()
+    {
+        $order = Order::find($this->order_id);
+        return view('livewire.admin.admin-order-details-component',['order'=>$order])->layout('layouts.base');
+    }
+
+// order-details
+<div>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-md-6">Ordered Item</div>
+                            <div class="col-md-6">
+                                <a href="{{ route('admin.orders') }}" class="btn btn-success pull-right">All Orders</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="wrap-iten-in-cart">
+                                <h3 class="box-title">Products Name</h3>
+                                <ul class="products-cart">
+                                    @forelse ($order->orderItems as $item)
+                                        <li class="pr-cart-item">
+                                            <div class="product-image">
+                                                <figure><img src="{{asset('assets/images/products')}}/{{$item->product->image}}" alt="{{$item->product->name}}"></figure>
+                                            </div>
+                                            <div class="product-name">
+                                                <a class="link-to-product" href="{{ route('product.details', ['slug'=>$item->product->slug]) }}">{{$item->product->name}}</a>
+                                            </div>
+                                            <div class="price-field produtc-price"><p class="price">${{$item->price}}</p></div>
+                                            <div class="quantity">
+                                                <h5>{{$item->quantity}}</h5>
+                                            </div>
+                                            <div class="price-field sub-total"><p class="price">${{$item->price * $item->quantity}}</p></div>
+                                        </li>
+                                    @empty
+                                    @endforelse
+                                </ul>
+                        </div>
+                        <div class="summary">
+                            <div class="order-summary">
+                                <h4 class="title-box">Order Summary</h4>
+                                <p class="summary-info"><span class="title">Subtotal</span><b class="index">${{$order->subtotal}}</b></p>
+                                <p class="summary-info"><span class="title">Tax</span><b class="index">${{$order->tax}}</b></p>
+                                <p class="summary-info"><span class="title">Shipping</span><b class="index">Free Shipping</b></p>
+                                <p class="summary-info"><span class="title">Total</span><b class="index">${{$order->total}}</b></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Billing Details</div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th>First Name</th>
+                                <th>{{$order->firstname}}</th>
+                                <th>Last Name</th>
+                                <th>{{$order->lastname}}</th>
+                            </tr>
+                            <tr>
+                                <th>Phone</th>
+                                <th>{{$order->phone}}</th>
+                                <th>Email</th>
+                                <th>{{$order->email}}</th>
+                            </tr>
+                            <tr>
+                                <th>Lin1</th>
+                                <th>{{$order->lin1}}</th>
+                                <th>Line2</th>
+                                <th>{{$order->line2}}</th>
+                            </tr>
+                            <tr>
+                                <th>City</th>
+                                <th>{{$order->city}}</th>
+                                <th>Province</th>
+                                <th>{{$order->province}}</th>
+                            </tr>
+                            <tr>
+                                <th>Country</th>
+                                <th>{{$order->country}}</th>
+                                <th>Zipcode</th>
+                                <th>{{$order->zipcode}}</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if ($order->is_shipping_different)
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">Shipping Details</div>
+                        <div class="panel-body">
+                            <table class="table">
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>{{$order->shipping->firstname}}</th>
+                                    <th>Last Name</th>
+                                    <th>{{$order->shipping->lastname}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Phone</th>
+                                    <th>{{$order->shipping->phone}}</th>
+                                    <th>Email</th>
+                                    <th>{{$order->shipping->email}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Lin1</th>
+                                    <th>{{$order->shipping->lin1}}</th>
+                                    <th>Line2</th>
+                                    <th>{{$order->shipping->line2}}</th>
+                                </tr>
+                                <tr>
+                                    <th>City</th>
+                                    <th>{{$order->shipping->city}}</th>
+                                    <th>Province</th>
+                                    <th>{{$order->shipping->province}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>{{$order->shipping->country}}</th>
+                                    <th>Zipcode</th>
+                                    <th>{{$order->shipping->zipcode}}</th>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        @endif
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Transaction  </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th>Transaction Mode</th>
+                                <th>{{$order->transaction->mode}}</th>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <th>{{$order->transaction->status}}</th>
+                            </tr>
+                            <tr>
+                                <th>Transaction Date</th>
+                                <th>{{$order->transaction->created_at}}</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+// OrderItem
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+// admin-order-comp
+	<th>Action</th>
+	<td><a href="{{ route('admin.orders.details', ['order_id'=>$order->id]) }}" class="btn btn-info btn-sm">Details</a></td>
+```
+
+## Admin Update Order Status
+
+php artisan make:migration add_delivered_canceled_date_to_orders_table --table=orders
+php artisan  migrate
+
+```php
+// orders
+	$table->date('delivered_date')->nullable();
+	$table->date('canceled_date')->nullable();
+
+// admin-order-comp
+	<th colspan="2" class="text-center">Action</th>
+<td>
+		<div class="dropdown">
+			<button class="btn btn-success btn-sm dropdown-toggle" type="button" id="statusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+				Status <span class="caret"></span>
+			</button>
+			<ul class="dropdown-menu" aria-labelledby="statusDropdown">
+				<li><a href="#" class="" wire:click.prevent="updateOrderStatus({{$order->id}},'delivered')">Delivered</a></li>
+				<li><a href="#" class="" wire:click.prevent="updateOrderStatus({{$order->id}},'canceled')">Canceled</a></li>
+			</ul>
+		</div>
+	</td>
+
+// AdminOrderComponent
+    public function updateOrderStatus($order_id, $status){
+        $order = Order::find($order_id);
+        $order->status =  $status;
+        if ($status == 'delivered') {
+            $order->delivered_date = DB::raw('CURRENT_DATE');
+        } else if($status == 'canceled'){
+            $order->canceled_date = DB::raw('CURRENT_DATE');
+        }
+        $order->save();
+        session()->flash('order_message','Order status has been updated successfully');
+    }
+
+// admin-order-details
+	<div class="row">
+		<div class="col-md-12">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="row">
+						<div class="col-md-6">Ordered Details</div>
+						<div class="col-md-6">
+							<a href="{{ route('admin.orders') }}" class="btn btn-success pull-right">All Orders</a>
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<table class="table">
+						<tr>
+							<th>Order Id</th>
+							<td>{{$order->id}}</td>
+							<th>Order Date</th>
+							<td>{{$order->created_at}}</td>
+							<th>Status</th>
+							<td>{{$order->status}}</td>
+							@if ($order->status == 'delivered')
+								<th>Delivery Date</th>
+								<td>{{$order->delivered_date}}</td>
+							@elseif($order->status == 'canceled')
+								<th>Cancel Date</th>
+								<td>{{$order->canceled_date}}</td>
+							@endif
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+```
+
+## User Show Orders and Order Details
+
+php artisan make:livewire user/UserOrderComponent
+php artisan make:livewire user/UserOrderDetailsComponent
+
+    Route::get('/user/orders',UserOrderComponent::class)->name('user.orders');
+    Route::get('/user/orders/{order_id}',UserOrderDetailsComponent::class)->name('user.orders.details');
+
+```php
+// UserOrderComponent
+    use WithPagination;
+    public function render()
+    {
+        $orders = Order::where('user_id',Auth::user()->id)->paginate(12);
+        return view('livewire.user.user-order-component',['orders'=>$orders])->layout('layouts.base');
+    }
+
+// UserOrderDetailsComponent
+    public $order_id;
+    function mount($order_id) {
+        $this->order_id = $order_id;
+    }
+    public function render()
+    {
+        $order = Order::where('user_id',Auth::user()->id)->where('id',$this->order_id)->first();
+        return view('livewire.user.user-order-details-component',['order'=>$order])->layout('layouts.base');
+    }
+
+// user-order
+<div>
+    <style>
+        nav svg {
+            height: 20px;
+        }
+        nav .hidden {
+            display: block !important;
+        }
+    </style>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        All Orders
+                    </div>
+                    <div class="panel-body">
+                        @if (Session::has('order_message'))
+                            <div class="alert alert-success" role="alert">{{Session::get('order_message')}}</div>
+                        @endif
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>OrderId</th>
+                                    <th>Subtotal</th>
+                                    <th>Discount</th>
+                                    <th>Tax</th>
+                                    <th>Total</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Zipcode</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                    <th colspan="2" class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($orders as $order)
+                                    <tr>
+                                        <td>{{$order->id}}</td>
+                                        <td>${{$order->subtotal}}</td>
+                                        <td>${{$order->discount}}</td>
+                                        <td>${{$order->tax}}</td>
+                                        <td>${{$order->total}}</td>
+                                        <td>{{$order->firstname}}</td>
+                                        <td>{{$order->lastname}}</td>
+                                        <td>{{$order->phone}}</td>
+                                        <td>{{$order->email}}</td>
+                                        <td>{{$order->zipcode}}</td>
+                                        <td>{{$order->status}}</td>
+                                        <td>{{$order->created_at}}</td>
+                                        <td><a href="{{ route('user.orders.details', ['order_id'=>$order->id]) }}" class="btn btn-info btn-sm">Details</a></td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="statusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    Status <span class="caret"></span>
+                                                </button>
+                                                <ul class="dropdown-menu" aria-labelledby="statusDropdown">
+                                                    <li><a href="#" class="" wire:click.prevent="updateOrderStatus({{$order->id}},'delivered')">Delivered</a></li>
+                                                    <li><a href="#" class="" wire:click.prevent="updateOrderStatus({{$order->id}},'canceled')">Canceled</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        {{$orders->links()}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+// user-order-details
+<div>
+    <div class="container">
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-md-6">Ordered Details</div>
+                            <div class="col-md-6">
+                                <a href="{{ route('user.orders') }}" class="btn btn-success pull-right">My Orders</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th>Order Id</th>
+                                <td>{{$order->id}}</td>
+                                <th>Order Date</th>
+                                <td>{{$order->created_at}}</td>
+                                <th>Status</th>
+                                <td>{{$order->status}}</td>
+                                @if ($order->status == 'delivered')
+                                    <th>Delivery Date</th>
+                                    <td>{{$order->delivered_date}}</td>
+                                @elseif($order->status == 'canceled')
+                                    <th>Cancel Date</th>
+                                    <td>{{$order->canceled_date}}</td>
+                                @endif
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div class="wrap-iten-in-cart">
+                                <h3 class="box-title">Products Name</h3>
+                                <ul class="products-cart">
+                                    @forelse ($order->orderItems as $item)
+                                        <li class="pr-cart-item">
+                                            <div class="product-image">
+                                                <figure><img src="{{asset('assets/images/products')}}/{{$item->product->image}}" alt="{{$item->product->name}}"></figure>
+                                            </div>
+                                            <div class="product-name">
+                                                <a class="link-to-product" href="{{ route('product.details', ['slug'=>$item->product->slug]) }}">{{$item->product->name}}</a>
+                                            </div>
+                                            <div class="price-field produtc-price"><p class="price">${{$item->price}}</p></div>
+                                            <div class="quantity">
+                                                <h5>{{$item->quantity}}</h5>
+                                            </div>
+                                            <div class="price-field sub-total"><p class="price">${{$item->price * $item->quantity}}</p></div>
+                                        </li>
+                                    @empty
+                                    @endforelse
+                                </ul>
+                        </div>
+                        <div class="summary">
+                            <div class="order-summary">
+                                <h4 class="title-box">Order Summary</h4>
+                                <p class="summary-info"><span class="title">Subtotal</span><b class="index">${{$order->subtotal}}</b></p>
+                                <p class="summary-info"><span class="title">Tax</span><b class="index">${{$order->tax}}</b></p>
+                                <p class="summary-info"><span class="title">Shipping</span><b class="index">Free Shipping</b></p>
+                                <p class="summary-info"><span class="title">Total</span><b class="index">${{$order->total}}</b></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Billing Details</div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th>First Name</th>
+                                <th>{{$order->firstname}}</th>
+                                <th>Last Name</th>
+                                <th>{{$order->lastname}}</th>
+                            </tr>
+                            <tr>
+                                <th>Phone</th>
+                                <th>{{$order->phone}}</th>
+                                <th>Email</th>
+                                <th>{{$order->email}}</th>
+                            </tr>
+                            <tr>
+                                <th>Lin1</th>
+                                <th>{{$order->lin1}}</th>
+                                <th>Line2</th>
+                                <th>{{$order->line2}}</th>
+                            </tr>
+                            <tr>
+                                <th>City</th>
+                                <th>{{$order->city}}</th>
+                                <th>Province</th>
+                                <th>{{$order->province}}</th>
+                            </tr>
+                            <tr>
+                                <th>Country</th>
+                                <th>{{$order->country}}</th>
+                                <th>Zipcode</th>
+                                <th>{{$order->zipcode}}</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if ($order->is_shipping_different)
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">Shipping Details</div>
+                        <div class="panel-body">
+                            <table class="table">
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>{{$order->shipping->firstname}}</th>
+                                    <th>Last Name</th>
+                                    <th>{{$order->shipping->lastname}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Phone</th>
+                                    <th>{{$order->shipping->phone}}</th>
+                                    <th>Email</th>
+                                    <th>{{$order->shipping->email}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Lin1</th>
+                                    <th>{{$order->shipping->lin1}}</th>
+                                    <th>Line2</th>
+                                    <th>{{$order->shipping->line2}}</th>
+                                </tr>
+                                <tr>
+                                    <th>City</th>
+                                    <th>{{$order->shipping->city}}</th>
+                                    <th>Province</th>
+                                    <th>{{$order->shipping->province}}</th>
+                                </tr>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>{{$order->shipping->country}}</th>
+                                    <th>Zipcode</th>
+                                    <th>{{$order->shipping->zipcode}}</th>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        @endif
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Transaction  </div>
+                    <div class="panel-body">
+                        <table class="table">
+                            <tr>
+                                <th>Transaction Mode</th>
+                                <th>{{$order->transaction->mode}}</th>
+                            </tr>
+                            <tr>
+                                <th>Status</th>
+                                <th>{{$order->transaction->status}}</th>
+                            </tr>
+                            <tr>
+                                <th>Transaction Date</th>
+                                <th>{{$order->transaction->created_at}}</th>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+// base
+	<li class="menu-item" >
+		<a title="My Orders" href="{{ route('user.orders') }}">My Orders</a>
+	</li>
+```
+
+## User Order Cancellation
+
+ALTER TABLE `shippings` CHANGE `privence` `province` VARCHAR(191) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
+
+Shipping
+    protected $table = 'shippings';
+
+```php
+// UserOrderDetailsComponent
+    function cancelOrder() {
+        $order = Order::find($this->order_id);
+        $order->status = 'canceled';
+        $order->canceled_date = DB::raw('CURRENT_DATE');
+        $order->save();
+        session()->flash('order_message','Order has been canceled');
+    }
+
+// user-order-details
+	<div class="row">
+		<div class="col-md-12">
+			@if (Session::has('order_message'))
+				<div class="alert alert-success" role="alert">{{Session::get('order_message')}}</div>
+			@endif
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<div class="row">
+						<div class="col-md-6">Ordered Details</div>
+						<div class="col-md-6">
+							<a href="{{ route('user.orders') }}" class="btn btn-success pull-right">My Orders</a>
+							@if ($order->status == 'ordered')
+								<a href="" wire:click.prvent="cancelOrder" style="margin-right: 20px" class="mr-2 btn btn-warning pull-right">Cancel</a>
+							@endif
+						</div>
+					</div>
+				</div>
+				<div class="panel-body">
+					<table class="table">
+						<tr>
+							<th>Order Id</th>
+							<td>{{$order->id}}</td>
+							<th>Order Date</th>
+							<td>{{$order->created_at}}</td>
+							<th>Status</th>
+							<td>{{$order->status}}</td>
+							@if ($order->status == 'delivered')
+								<th>Delivery Date</th>
+								<td>{{$order->delivered_date}}</td>
+							@elseif($order->status == 'canceled')
+								<th>Cancel Date</th>
+								<td>{{$order->canceled_date}}</td>
+							@endif
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+```
+
 ## 

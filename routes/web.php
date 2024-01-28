@@ -13,6 +13,8 @@ use App\Http\Livewire\Admin\AdminEditHomeSliderComponent;
 use App\Http\Livewire\Admin\AdminEditProductComponent;
 use App\Http\Livewire\Admin\AdminHomeCategoryComponent;
 use App\Http\Livewire\Admin\AdminHomeSliderComponent;
+use App\Http\Livewire\Admin\AdminOrderComponent;
+use App\Http\Livewire\Admin\AdminOrderDetailsComponent;
 use App\Http\Livewire\Admin\AdminProductComponent;
 use App\Http\Livewire\Admin\AdminSaleComponent;
 use App\Http\Livewire\CartComponent;
@@ -24,6 +26,8 @@ use App\Http\Livewire\SearchComponent;
 use App\Http\Livewire\ShopComponent;
 use App\Http\Livewire\ThankyouComponent;
 use App\Http\Livewire\User\UserDashboardComponent;
+use App\Http\Livewire\User\UserOrderComponent;
+use App\Http\Livewire\User\UserOrderDetailsComponent;
 use App\Http\Livewire\WishlistComponent;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +54,8 @@ Route::get('/wishlist', WishlistComponent::class)->name('product.wishlist');
 
 Route::middleware(['auth:sanctum','verified'])->group(function(){
     Route::get('/user/dashboard',UserDashboardComponent::class)->name('user.dashboard');
+    Route::get('/user/orders',UserOrderComponent::class)->name('user.orders');
+    Route::get('/user/orders/{order_id}',UserOrderDetailsComponent::class)->name('user.orders.details');
 });
 Route::middleware(['auth:sanctum','verified','auth.admin'])->group(function(){
     Route::get('/admin/dashboard',AdminDashboardComponent::class)->name('admin.dashboard');
@@ -67,4 +73,6 @@ Route::middleware(['auth:sanctum','verified','auth.admin'])->group(function(){
     Route::get('/admin/coupons',AdminCouponsComponent::class)->name('admin.coupons');
     Route::get('/admin/coupons/add',AdminAddCouponComponent::class)->name('admin.coupons.add');
     Route::get('/admin/coupons/edit/{coupon_id}',AdminEditCouponComponent::class)->name('admin.coupons.edit');
+    Route::get('/admin/orders',AdminOrderComponent::class)->name('admin.orders');
+    Route::get('/admin/orders/{order_id}',AdminOrderDetailsComponent::class)->name('admin.orders.details');
 });
